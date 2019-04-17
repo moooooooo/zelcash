@@ -2237,7 +2237,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
     inputs.SetNullifiers(tx, true);
 
     // add outputs
-    inputs.ModifyCoins(tx.GetHash())->FromTx(tx, nHeight);
+    inputs.ModifyNewCoins(tx.GetHash())->FromTx(tx, nHeight);
 }
 
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
@@ -2921,7 +2921,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             nFees += view.GetValueIn(tx)-tx.GetValueOut();
 
             std::vector<CScriptCheck> vChecks;
-            if (!ContextualCheckInputs(tx, state, view, fExpensiveChecks, flags, false, txdata[i], chainparams.GetConsensus(), consensusBranchId, nScriptCheckThreads ? &vChecks : NULL))
+            bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
+            if (!ContextualCheckInputs(tx, state, view, fExpensiveChecks, flags, fCacheResults, txdata[i], chainparams.GetConsensus(), consensusBranchId, nScriptCheckThreads ? &vChecks : NULL))
                 return false;
             control.Add(vChecks);
         }
@@ -3998,8 +3999,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state,
         // Because we might not have enough data to tell if the block is indeed valid, Issue an initial reject message
         if (nHeight != 0 && !IsInitialBlockDownload()) {
             if (!IsBlockPayeeValid(block, nHeight)) {
-                return state.DoS(0, error("%s : Couldn't find zelnode payment", __func__),
-                                 REJECT_INVALID, "bad-cb-payee");
+                LogPrint("zelnode", "%s : Couldn't find zelnode payment", __func__);
+                return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee");
             }
         } else {
             if (fDebug)
@@ -4256,7 +4257,11 @@ bool ProcessNewBlock(CValidationState &state, CNode* pfrom, CBlock* pblock, bool
         bool fRequested = MarkBlockAsReceived(pblock->GetHash());
         fRequested |= fForceProcessing;
         if (!checked) {
-            return error("%s: CheckBlock FAILED", __func__);
+            if (state.GetRejectReason() == "bad-cb-payee") {
+                LogPrint("zelnode", "%s - Error - failed block payee check\n", __func__);
+                return false;
+            }
+            return error("%s: CheckBlock FAILED %s", __func__, state.GetRejectReason());
         }
 
         // Store to disk
