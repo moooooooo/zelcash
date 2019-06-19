@@ -91,16 +91,17 @@ void SelectBaseParams(CBaseChainParams::Network network)
 
 CBaseChainParams::Network NetworkIdFromCommandLine()
 {
-    bool fRegTest = GetBoolArg("-regtest", false);
-    bool fTestNet = GetBoolArg("-testnet", false);
+    //bool fRegTest = GetBoolArg("-regtest", false);
+    //bool fTestNet = GetBoolArg("-testnet", false);
+bool fTestNet = true;
 
-    if (fTestNet && fRegTest)
-        return CBaseChainParams::MAX_NETWORK_TYPES;
-    if (fRegTest)
-        return CBaseChainParams::REGTEST;
-    if (fTestNet)
-        return CBaseChainParams::TESTNET;
-    return CBaseChainParams::MAIN;
+//    if (fTestNet && fRegTest)
+//        return CBaseChainParams::MAX_NETWORK_TYPES;
+//    if (fRegTest)
+//        return CBaseChainParams::REGTEST;
+//      if (fTestNet)
+    return CBaseChainParams::TESTNET;
+    //return CBaseChainParams::MAIN;
 }
 
 bool SelectBaseParamsFromCommandLine()
